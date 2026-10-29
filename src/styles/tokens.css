@@ -1,0 +1,58 @@
+/* InvestAI design tokens — derived from the supplied UI reference. */
+
+:root {
+  /* Core palette */
+  --ink: #0b0b0b; /* deep black — dominant surface */
+  --paper: #f7f7f4; /* warm white — primary text */
+  --signal: #ffdc16; /* signal yellow — selected state / primary emphasis */
+  --alert: #ff2d3d; /* alert red — risk and negative states */
+
+  /* Supporting semantics used by the reference mock-ups */
+  --positive: #37d67a;
+  --positive-dim: rgba(55, 214, 122, 0.14);
+  --negative: #ff2d3d;
+  --negative-dim: rgba(255, 45, 61, 0.14);
+  --neutral: #8b8b86;
+  --accent-2: #ff8a3d; /* secondary chart series */
+
+  /* Surfaces (black stays dominant, layers are separated by tone not shadow) */
+  --surface-0: #0b0b0b;
+  --surface-1: #131313;
+  --surface-2: #1a1a1a;
+  --surface-3: #222221;
+  --line: #2a2a28;
+  --line-strong: #3a3a37;
+
+  --text-1: #f7f7f4;
+  --text-2: #b4b4ae;
+  --text-3: #7d7d78;
+  --text-on-signal: #0b0b0b;
+
+  /* Spacing scale (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Radii — restrained, no oversized rounded cards */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  --font-sans: 'Inter', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SFMono-Regular', ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.32);
+
+  --sidebar-w: 244px;
+  --topbar-h: 60px;
+  --bottomnav-h: 62px;
+  --content-max: 1180px;
+}

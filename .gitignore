@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.npm/
+
+# Build output
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Local tooling caches
+.cache/
+.vite/
