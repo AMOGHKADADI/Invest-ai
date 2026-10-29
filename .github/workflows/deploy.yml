@@ -50,9 +50,14 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # No `environment:` block on purpose: this repository's pre-existing
+    # `github-pages` environment carries a deployment-branch policy that does
+    # not include `main`, which rejects every deploy. Once Settings ->
+    # Environments -> github-pages allows `main`, the recommended block can be
+    # restored:
+    #   environment:
+    #     name: github-pages
+    #     url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy
         id: deployment
