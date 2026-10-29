@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../app/store';
+import { useOverlay } from '../app/overlay';
 import {
   EmptyState,
   MetricTile,
@@ -10,6 +11,7 @@ import {
   SideBadge,
   SourceTag,
 } from '../components/ui';
+import { downloadCsv } from '../lib/download';
 import type { TradeSide } from '../lib/types';
 import { formatDateTime, grouped, inr } from '../lib/format';
 
@@ -24,7 +26,26 @@ const FILTERS: { value: Filter; label: string }[] = [
 export default function Trades() {
   const store = useStore();
   const { trades, market, settings } = store;
+  const { toast } = useOverlay();
   const [filter, setFilter] = useState<Filter>('all');
+
+  const exportTrades = () => {
+    downloadCsv('investai-trades.csv', [
+      ['timestamp', 'date', 'symbol', 'side', 'quantity', 'price', 'fee', 'mode', 'reason'],
+      ...trades.map((t) => [
+        t.at,
+        new Date(t.at).toISOString(),
+        t.symbol,
+        t.side,
+        t.qty,
+        t.price,
+        t.fee,
+        t.mode,
+        t.reason,
+      ]),
+    ]);
+    toast(`Exported ${trades.length} trades to CSV.`, 'ok');
+  };
 
   const rows = useMemo(() => {
     const sorted = [...trades].sort((a, b) => b.at - a.at);
@@ -53,7 +74,19 @@ export default function Trades() {
       <PageHead
         title="Trade History"
         sub="Every simulated transaction with quantity, price and fees"
-        actions={<SourceTag source={market.source} at={market.dates[market.dates.length - 1]} withTime />}
+        actions={
+          <div className="inline">
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={trades.length === 0}
+              onClick={exportTrades}
+            >
+              Export CSV
+            </button>
+            <SourceTag source={market.source} at={market.dates[market.dates.length - 1]} withTime />
+          </div>
+        }
       />
 
       <div className="stack">

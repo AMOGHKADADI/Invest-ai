@@ -162,3 +162,20 @@ export function parseOhlcvCsv(text: string, fallbackSymbol = 'IMPORTED'): CsvImp
     warnings,
   };
 }
+
+/**
+ * Serialise a rectangular table into CSV text (RFC 4180-style escaping).
+ * Used for the app's export actions: trades, backtest equity curves.
+ */
+export function toCsv(rows: readonly (readonly (string | number | null | undefined)[])[]): string {
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const s = cell === null || cell === undefined ? '' : String(cell);
+          return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        })
+        .join(','),
+    )
+    .join('\n');
+}

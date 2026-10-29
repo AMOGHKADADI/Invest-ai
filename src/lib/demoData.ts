@@ -29,6 +29,15 @@ export const UNIVERSE: Asset[] = [
   { symbol: 'ITC', name: 'ITC Limited', sector: 'Consumer Goods', exchange: 'NSE' },
   { symbol: 'BHARTIARTL', name: 'Bharti Airtel', sector: 'Telecom', exchange: 'NSE' },
   { symbol: 'LT', name: 'Larsen & Toubro', sector: 'Industrials', exchange: 'NSE' },
+  { symbol: 'AXISBANK', name: 'Axis Bank', sector: 'Financials', exchange: 'NSE' },
+  { symbol: 'MARUTI', name: 'Maruti Suzuki', sector: 'Automobiles', exchange: 'NSE' },
+  { symbol: 'HINDUNILVR', name: 'Hindustan Unilever', sector: 'Consumer Goods', exchange: 'NSE' },
+  { symbol: 'ASIANPAINT', name: 'Asian Paints', sector: 'Consumer Goods', exchange: 'NSE' },
+  { symbol: 'SUNPHARMA', name: 'Sun Pharmaceutical', sector: 'Healthcare', exchange: 'NSE' },
+  { symbol: 'DRREDDY', name: "Dr Reddy's Laboratories", sector: 'Healthcare', exchange: 'NSE' },
+  { symbol: 'TATASTEEL', name: 'Tata Steel', sector: 'Metals', exchange: 'NSE' },
+  { symbol: 'WIPRO', name: 'Wipro', sector: 'Information Technology', exchange: 'NSE' },
+  { symbol: 'ADANIENT', name: 'Adani Enterprises', sector: 'Industrials', exchange: 'NSE' },
 ];
 
 export const BENCHMARK_ASSET: Asset = {
@@ -91,6 +100,15 @@ const START_PRICES: Record<string, number> = {
   ITC: 335,
   BHARTIARTL: 1120,
   LT: 2240,
+  AXISBANK: 1140,
+  MARUTI: 12400,
+  HINDUNILVR: 2380,
+  ASIANPAINT: 2890,
+  SUNPHARMA: 1720,
+  DRREDDY: 1280,
+  TATASTEEL: 142,
+  WIPRO: 520,
+  ADANIENT: 3150,
   NIFTY50: 21850,
 };
 

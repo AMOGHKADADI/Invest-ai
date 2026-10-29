@@ -113,6 +113,16 @@ export interface OrderOutcome {
   trade?: Trade;
 }
 
+/** Dry-run of the risk layer: what would happen if this order were submitted. */
+export interface OrderPreview {
+  allowed: boolean;
+  /** Quantity that would actually execute after risk trimming. */
+  qty: number;
+  price: number;
+  fee: number;
+  notes: { code: string; message: string; severity: 'block' | 'trim' | 'warn' }[];
+}
+
 interface Persisted {
   settings: Settings;
   cash: number;
@@ -159,6 +169,7 @@ export interface StoreValue {
   forecastFor: (symbol: string) => ForecastPoint[] | null;
   dqnActionFor: (symbol: string) => SignalSide | null;
   placeOrder: (symbol: string, side: 'buy' | 'sell', qty: number) => OrderOutcome;
+  previewOrder: (symbol: string, side: 'buy' | 'sell', qty: number) => OrderPreview;
   resetPortfolio: () => void;
   updateSettings: (patch: Partial<Settings>) => void;
   toggleWatch: (symbol: string) => void;
@@ -458,6 +469,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [account, drawdown, market.dates, prices, riskSettings, sectors],
   );
 
+  /** Run the risk layer without executing: used for live order previews. */
+  const previewOrder = useCallback(
+    (symbol: string, side: 'buy' | 'sell', qty: number): OrderPreview => {
+      const price = prices[symbol];
+      if (!Number.isFinite(price) || price <= 0) {
+        return {
+          allowed: false,
+          qty: 0,
+          price: 0,
+          fee: 0,
+          notes: [{ code: 'NO_PRICE', message: `No price available for ${symbol}.`, severity: 'block' }],
+        };
+      }
+      const verdict = evaluateOrder({
+        side,
+        symbol,
+        sector: sectors[symbol] ?? 'Other',
+        sectors,
+        qty,
+        price,
+        account: { cash: account.cash, holdings: account.holdings },
+        prices,
+        settings: riskSettings,
+        currentDrawdown: drawdown,
+      });
+      const fee = verdict.allowed ? computeFee(side, verdict.qty, price, settings.costBps).fee : 0;
+      return { allowed: verdict.allowed, qty: verdict.qty, price, fee, notes: verdict.notes };
+    },
+    [account, drawdown, prices, riskSettings, sectors, settings.costBps],
+  );
+
   const resetPortfolio = useCallback(() => {
     setAccount({ cash: settings.initialCapital, holdings: [], trades: [] });
     setDataNotice('Paper portfolio reset to the configured initial capital.');
@@ -685,6 +727,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     forecastFor,
     dqnActionFor,
     placeOrder,
+    previewOrder,
     resetPortfolio,
     updateSettings,
     toggleWatch,

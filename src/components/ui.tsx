@@ -20,6 +20,7 @@ export type IconName =
   | 'settings'
   | 'star'
   | 'search'
+  | 'close'
   | 'info'
   | 'spark'
   | 'arrow';
@@ -87,6 +88,7 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M21 21l-4.3-4.3" />
     </>
   ),
+  close: <path d="M6 6l12 12M18 6L6 18" />,
   info: (
     <>
       <circle cx="12" cy="12" r="9" />

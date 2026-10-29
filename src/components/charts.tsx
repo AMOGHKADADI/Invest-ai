@@ -87,6 +87,16 @@ export function LineChart({
     yMax = Math.max(yMax, ...band.upper);
   }
   if (xMin === xMax) xMax = xMin + 1;
+  // Nearly flat series would auto-scale to a range so small that every tick
+  // rounds to the same label; enforce a floor of 1% of the value's magnitude.
+  const rawSpan = yMax - yMin;
+  const mid = (yMax + yMin) / 2;
+  const floorSpan = Math.abs(mid) * 0.01;
+  if (rawSpan > 0 && rawSpan < floorSpan) {
+    const pad = (floorSpan - rawSpan) / 2;
+    yMin -= pad;
+    yMax += pad;
+  }
   const yPad = (yMax - yMin || Math.abs(yMax) || 1) * 0.08;
   yMin -= yPad;
   yMax += yPad;
@@ -214,11 +224,15 @@ export function LineChart({
 }
 
 function formatCompact(value: number): string {
+  if (!Number.isFinite(value)) return '—';
   const abs = Math.abs(value);
-  if (abs >= 1e7) return `${(value / 1e7).toFixed(1)}Cr`;
-  if (abs >= 1e5) return `${(value / 1e5).toFixed(1)}L`;
-  if (abs >= 1e3) return `${(value / 1e3).toFixed(0)}k`;
-  if (abs >= 100) return value.toFixed(0);
+  const sign = value < 0 ? '-' : '';
+  // One unit family per axis: k/M only (currency screens use `inr` with lakh
+  // grouping). A single family prevents labels like “1.0L / 100k” colliding
+  // when a series hovers around a rounding boundary.
+  if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${sign}${(abs / 1e3).toFixed(1)}k`;
+  if (abs >= 100) return `${sign}${abs.toFixed(0)}`;
   return value.toFixed(abs < 1 ? 2 : 1);
 }
 

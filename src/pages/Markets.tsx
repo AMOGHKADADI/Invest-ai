@@ -41,6 +41,22 @@ export default function Markets() {
     return { value: last.c, change: (last.c - prev.c) / prev.c };
   }, [market.benchmark]);
 
+  const breadth = useMemo(() => {
+    let up = 0;
+    let down = 0;
+    let flat = 0;
+    for (const asset of assets) {
+      const price = prices[asset.symbol];
+      const prev = previous[asset.symbol];
+      if (!price || !prev) continue;
+      const change = (price - prev) / prev;
+      if (change > 0.0001) up += 1;
+      else if (change < -0.0001) down += 1;
+      else flat += 1;
+    }
+    return { up, down, flat };
+  }, [assets, prices, previous]);
+
   const baskets = useMemo(() => {
     const groups = new Map<string, { sum: number; count: number }>();
     for (const asset of assets) {
@@ -88,6 +104,17 @@ export default function Markets() {
               <span className={benchmark.change >= 0 ? 'pos' : 'neg'}>{pct(benchmark.change)}</span>
             </span>
           ) : null}
+          <span
+            className="tag"
+            style={{ padding: '7px 13px', fontSize: 12.5 }}
+            title={`Breadth across ${breadth.up + breadth.down + breadth.flat} instruments today`}
+          >
+            Breadth{' '}
+            <strong style={{ color: '#37D67A' }}>{breadth.up}↑</strong>
+            <span className="muted"> / </span>
+            <strong style={{ color: '#FF2D3D' }}>{breadth.down}↓</strong>
+            {breadth.flat > 0 ? <span className="muted"> · {breadth.flat} flat</span> : null}
+          </span>
           {baskets.map((b) => (
             <span className="tag" style={{ padding: '7px 13px', fontSize: 12.5 }} key={b.sector}>
               {b.sector} basket{' '}

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../app/store';
+import { useOverlay } from '../app/overlay';
 import { SignalCard } from '../components/SignalCard';
 import {
   Card,
@@ -32,6 +33,21 @@ export default function Signals() {
     store;
   const [filter, setFilter] = useState<Filter>('all');
   const [dqnSymbol, setDqnSymbol] = useState<string>(dqnMeta?.symbol ?? market.assets[0]?.symbol ?? '');
+  const { toast } = useOverlay();
+
+  const statusRef = useRef(dqnStatus);
+  useEffect(() => {
+    if (statusRef.current === dqnStatus) return;
+    statusRef.current = dqnStatus;
+    if (dqnStatus === 'ready' && dqnMeta) {
+      toast(
+        `DQN agent trained on ${dqnMeta.symbol} — test ${pct(dqnMeta.testReturn)} vs buy & hold ${pct(dqnMeta.buyHoldReturn)}.`,
+        'ok',
+      );
+    } else if (dqnStatus === 'error' && dqnError) {
+      toast(dqnError, 'error');
+    }
+  }, [dqnError, dqnMeta, dqnStatus, toast]);
 
   const signals = useMemo(
     () =>

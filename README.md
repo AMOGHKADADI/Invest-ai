@@ -7,7 +7,7 @@
 **LSTM forecasting · FinBERT-ready sentiment · Deep Q-Network trading agent · layered risk controls · chronological backtesting — with zero backend, zero API keys and zero real money.**
 
 [![CI](https://github.com/AMOGHKADADI/Invest-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/AMOGHKADADI/Invest-ai/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-109%20passing-brightgreen)](#-testing)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -31,10 +31,11 @@ Most "AI trading" demos are either slideware or black boxes you must trust. This
 |---|---|
 | 🧠 **Real models, not mocks** | An LSTM trains in your browser with train/validation/test splits and held-out metrics. A dueling Double-DQN with prioritised replay learns Buy/Sell/Hold in a cost-aware environment. Both are gradient-checked by the test suite. |
 | 🚫 **No look-ahead, by construction** | Signals read only the past, backtests fill at the *next* open, sentiment is time-sliced, and models trained on the full series are deliberately excluded from backtests. Every rule is enforced in code and covered by tests. |
+| 🧭 **Built for speed of use** | ⌘K command palette to jump anywhere, a trade ticket reachable from every signal card, live risk previews *before* you submit, toast feedback for every action, and one-click CSV exports of trades and backtest curves. |
 | 🔒 **Nothing to configure** | No server, no database, no API keys, no brokerage. Deterministic demo data plus CSV import. Clone → `npm install` → it works, offline. |
 | 🎯 **Honest by design** | Every figure carries its provenance tag (demo / imported / model). Disabled features *say* they're disabled. No "guaranteed returns" language anywhere. |
 
-**Everything below is real, working software** — not a prototype: paper-trading with fees and risk limits, a searchable market screen with technical indicators, a backtest engine vs. an index benchmark, sentiment classification with a clean lexicon→FinBERT boundary, and an MIT-licensed codebase with 107 unit tests.
+**Everything below is real, working software** — not a prototype: paper-trading with fees and risk limits, a searchable market screen with technical indicators, a backtest engine vs. an index benchmark, sentiment classification with a clean lexicon→FinBERT boundary, and an MIT-licensed codebase with 109 unit tests.
 
 ---
 
@@ -48,6 +49,10 @@ Most "AI trading" demos are either slideware or black boxes you must trust. This
 <tr>
 <td><sub><b>LSTM training & 7-session forecast</b></sub><br><img src="docs/screenshots/forecast.png" alt="LSTM forecast"></td>
 <td><sub><b>Portfolio & allocation</b></sub><br><img src="docs/screenshots/portfolio.png" alt="Portfolio"></td>
+</tr>
+<tr>
+<td><sub><b>⌘K command palette</b></sub><br><img src="docs/screenshots/palette.png" alt="Command palette"></td>
+<td><sub><b>Trade ticket with live risk preview</b></sub><br><img src="docs/screenshots/trade-modal.png" alt="Order ticket modal"></td>
 </tr>
 <tr>
 <td><sub><b>Markets with indicators</b></sub><br><img src="docs/screenshots/markets.png" alt="Markets"></td>
@@ -71,7 +76,7 @@ That's it. No environment variables, no sign-up, no API keys.
 | Command | What it does |
 |---|---|
 | `npm run dev` | Dev server with hot reload |
-| `npm run test` | 107 unit tests (financial math, models, no-look-ahead) |
+| `npm run test` | 109 unit tests (financial math, models, no-look-ahead) |
 | `npm run lint` · `npm run typecheck` | ESLint + strict TypeScript |
 | `npm run build` | Typecheck + production bundle (~100 kB gzipped) |
 | `npm run ci` | Everything CI runs |
@@ -82,7 +87,9 @@ That's it. No environment variables, no sign-up, no API keys.
 
 **Dashboard** — portfolio value, day change, drawdown, risk summary, latest signal, replayed equity curve, all timestamped and source-tagged.
 
-**Markets** — searchable instrument universe, per-asset detail with price chart and SMA/EMA, RSI, MACD, Bollinger, ATR and volatility readouts; watchlist; one-click paper orders.
+**⌘K command palette** — one shortcut to search instruments, jump to any screen or trigger key actions (train a model, export trades), keyboard-first with no chrome.
+
+**Markets** — an 18-instrument universe with market pulse (index, breadth, strongest sector baskets), searchable list, per-asset detail with price chart and SMA/EMA, RSI, MACD, Bollinger, ATR and volatility readouts; watchlist; one-click paper orders.
 
 **AI signals** — Buy/Sell/Hold from a deterministic ensemble of trend, momentum and volatility features, *plus* sentiment, LSTM forecast direction and the DQN action when those models exist — each factor shown with its evidence and score.
 
@@ -92,11 +99,15 @@ That's it. No environment variables, no sign-up, no API keys.
 
 **Sentiment** — a transparent financial lexicon in the browser today, and a FinBERT HTTP adapter that activates only when you point it at a hosted endpoint (it fails closed — it will never silently pretend to be a transformer).
 
+**Trade ticket from anywhere** — every signal card opens a modal order ticket that runs the risk layer *as you type*: trims and blocks appear before you submit, and the outcome lands as a toast.
+
 **Risk management** — stop-loss, single-position cap, sector diversification cap and drawdown halt. Every order passes `evaluateOrder`: quantities are trimmed or blocked with a human-readable reason, and you can watch it happen.
 
-**Backtesting** — chronological engine: signals from session *t* fill at *t+1*'s open, costs on every fill, cash and position constraints, benchmark comparison, engine guarantees printed in the UI.
+**Portfolio** — holdings, asset/sector allocation donuts, P&L, and equity + drawdown charts replayed from your own trade history.
 
-**Trade history & settings** — every simulated fill with fees and rationale; capital, cost and model switches; CSV import; portfolio reset.
+**Backtesting** — chronological engine: signals from session *t* fill at *t+1*'s open, costs on every fill, cash and position constraints, benchmark comparison. All three strategies run over the identical window side by side — click a row to load it — and any curve exports to CSV.
+
+**Trade history & settings** — every simulated fill with fees and rationale, exportable to CSV; capital, cost and model switches; CSV import; portfolio reset; toast feedback for every action.
 
 ---
 
@@ -129,9 +140,9 @@ src/
 │   ├── metrics.ts          # Sharpe · Sortino · drawdown · CAGR · Calmar
 │   ├── backtest.ts         # Chronological engine + benchmark
 │   ├── strategies.ts       # InvestAI ensemble · SMA crossover · buy & hold
-│   └── csv.ts · demoData.ts · format.ts · optim.ts · types.ts
-├── app/store.tsx           # State, localStorage persistence, model training orchestration
-├── components/             # App shell, hand-rolled SVG charts, UI primitives
+│   ├── csv.ts · download.ts · demoData.ts · format.ts · optim.ts · types.ts
+├── app/                    # store (state + training), overlay (toasts + order ticket), nav
+├── components/             # App shell, ⌘K palette, order ticket, SVG charts, UI primitives
 ├── pages/                  # 12 routed screens
 └── styles/                 # Design tokens + responsive CSS
 ```
@@ -154,14 +165,14 @@ demo data / CSV ──► causal features ──► signal engine ◄── sent
 ## 🧪 Testing
 
 ```bash
-npm run test     # 107 tests, ~3s
+npm run test     # 109 tests, ~3s
 ```
 
 - **Financial math** — indicator known-values, Sharpe/Sortino/drawdown on hand-computed fixtures, fee and P&L accounting, allocation.
 - **Model integrity** — *finite-difference gradient checks* against the analytical backward passes of both the LSTM and the DQN network; seed reproducibility.
 - **Backtest correctness** — cost application, chronological execution, and a dedicated no-look-ahead regression test.
 - **Risk rules** — trimming, blocking, stop-loss and drawdown-halt behaviour.
-- **Inputs** — CSV parsing edge cases, sentiment classification boundaries.
+- **Inputs** — CSV parsing edge cases, CSV serialisation/escaping, sentiment classification boundaries.
 
 CI runs lint → typecheck → test → build on every push and pull request.
 

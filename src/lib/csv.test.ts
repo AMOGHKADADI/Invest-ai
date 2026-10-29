@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CsvImportError, parseOhlcvCsv } from './csv';
+import { CsvImportError, parseOhlcvCsv, toCsv } from './csv';
 
 function buildCsv(rows: number): string {
   const lines = ['date,open,high,low,close,volume'];
@@ -88,5 +88,24 @@ describe('parseOhlcvCsv', () => {
     expect(result.bars).toHaveLength(1);
     expect(result.bars[0].c).toBe(105);
     expect(result.warnings[0]).toMatch(/Duplicate date/);
+  });
+});
+
+describe('toCsv', () => {
+  it('serialises rows with proper quoting and escaping', () => {
+    const csv = toCsv([
+      ['symbol', 'name'],
+      ['RELIANCE', 'Reliance, "Ltd"'],
+      [42, null],
+    ]);
+    expect(csv).toBe('symbol,name\nRELIANCE,"Reliance, ""Ltd"""\n42,');
+  });
+
+  it('keeps numbers unquoted and handles newlines inside cells', () => {
+    const csv = toCsv([
+      ['qty', 'note'],
+      [3, 'line1\nline2'],
+    ]);
+    expect(csv).toBe('qty,note\n3,"line1\nline2"');
   });
 });

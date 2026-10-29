@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../app/store';
-import { ALLOCATION_COLORS, Donut, type DonutSlice } from '../components/charts';
+import { ALLOCATION_COLORS, CHART_COLORS, Donut, LineChart, type DonutSlice, type LineSeries } from '../components/charts';
 import {
   Card,
   EmptyState,
@@ -13,8 +13,8 @@ import {
   SourceTag,
 } from '../components/ui';
 import { allocationSlices, holdingRows, realizedPnl, sectorAllocation } from '../lib/portfolio';
-import { summarizeEquity } from '../lib/metrics';
-import { grouped, inr, pct, ratio } from '../lib/format';
+import { drawdownSeries, summarizeEquity } from '../lib/metrics';
+import { formatShortDate, grouped, inr, pct, ratio } from '../lib/format';
 
 export default function PortfolioPage() {
   const store = useStore();
@@ -22,6 +22,37 @@ export default function PortfolioPage() {
 
   const valuation = store.valuation;
   const summary = useMemo(() => summarizeEquity(equityCurve, { riskFreeRate: 0 }), [equityCurve]);
+
+  const equitySeries = useMemo<LineSeries[]>(() => {
+    if (equityCurve.length === 0) return [];
+    const base = settings.initialCapital;
+    return [
+      {
+        id: 'equity',
+        label: 'Total return %',
+        color: CHART_COLORS.signal,
+        area: true,
+        points: equityCurve.map((v, i) => ({
+          x: market.dates[i] ?? i,
+          y: (v / base - 1) * 100,
+        })),
+      },
+    ];
+  }, [equityCurve, market.dates, settings.initialCapital]);
+
+  const drawdownLine = useMemo<LineSeries[]>(() => {
+    if (equityCurve.length === 0) return [];
+    const dd = drawdownSeries(equityCurve);
+    return [
+      {
+        id: 'drawdown',
+        label: 'Drawdown %',
+        color: CHART_COLORS.alert,
+        area: true,
+        points: dd.map((v, i) => ({ x: market.dates[i] ?? i, y: -v * 100 })),
+      },
+    ];
+  }, [equityCurve, market.dates]);
 
   const rows = useMemo(
     () => holdingRows({ cash, holdings }, prices, previous, assets, valuation.total),
@@ -234,6 +265,35 @@ export default function PortfolioPage() {
             </div>
           </Card>
         </Section>
+
+        {equitySeries.length > 0 ? (
+          <Section title="Equity & drawdown" note="replayed from the same trade history">
+            <Card>
+              <div className="chart-legend" style={{ marginBottom: 8 }}>
+                <span className="legend-key">
+                  <span className="legend-swatch" style={{ background: CHART_COLORS.signal }} /> Total
+                  return vs initial capital
+                </span>
+                <span className="legend-key">
+                  <span className="legend-swatch" style={{ background: CHART_COLORS.alert }} /> Drawdown
+                  from peak
+                </span>
+              </div>
+              <LineChart
+                series={equitySeries}
+                height={220}
+                formatY={(v) => `${v.toFixed(1)}%`}
+                formatX={(v) => formatShortDate(v)}
+              />
+              <LineChart
+                series={drawdownLine}
+                height={130}
+                formatY={(v) => `${v.toFixed(1)}%`}
+                formatX={(v) => formatShortDate(v)}
+              />
+            </Card>
+          </Section>
+        ) : null}
       </div>
     </>
   );

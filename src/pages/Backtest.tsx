@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../app/store';
+import { useOverlay } from '../app/overlay';
 import { CHART_COLORS, LineChart, type LineSeries } from '../components/charts';
 import {
   Card,
@@ -11,8 +12,9 @@ import {
   Section,
   SourceTag,
 } from '../components/ui';
-import { runBacktest, type BacktestResult } from '../lib/backtest';
+import { runBacktest, type BacktestResult, type Strategy } from '../lib/backtest';
 import { ALL_STRATEGIES, strategyById } from '../lib/strategies';
+import { downloadCsv } from '../lib/download';
 import { formatShortDate, grouped, pct, ratio } from '../lib/format';
 
 type Range = '3M' | '6M' | '1Y' | 'ALL';
@@ -27,46 +29,78 @@ const WINDOWS: { value: Range; label: string; sessions: number }[] = [
 export default function Backtest() {
   const store = useStore();
   const { market, settings, sentimentAt } = store;
+  const { toast } = useOverlay();
   const [strategyId, setStrategyId] = useState(ALL_STRATEGIES[0].id);
   const [range, setRange] = useState<Range>('1Y');
 
-  const strategy = strategyById(strategyId);
+  interface ComparisonRow {
+    strategy: Strategy;
+    result: BacktestResult | null;
+    error: string | null;
+  }
 
-  const outcome = useMemo<{ result: BacktestResult | null; error: string | null }>(() => {
+  /* Run every strategy over the identical window so results are comparable. */
+  const comparison = useMemo<{ rows: ComparisonRow[]; error: string | null }>(() => {
     const assets = market.assets
       .map((asset) => ({ symbol: asset.symbol, sector: asset.sector, bars: market.bars[asset.symbol] ?? [] }))
       .filter((a) => a.bars.length > 60);
-    if (assets.length === 0) return { result: null, error: 'No instrument has enough history to backtest.' };
+    if (assets.length === 0) {
+      return { rows: [], error: 'No instrument has enough history to backtest.' };
+    }
 
     const sessions = WINDOWS.find((w) => w.value === range)?.sessions ?? Number.POSITIVE_INFINITY;
     const startIndex = Math.max(0, market.dates.length - sessions);
 
-    try {
-      const result = runBacktest({
-        assets,
-        benchmark:
-          market.benchmarkAsset && market.benchmark && market.benchmark.length > 0
-            ? { symbol: market.benchmarkAsset.symbol, bars: market.benchmark }
-            : null,
-        strategy: strategyById(strategyId),
-        initialCash: settings.initialCapital,
-        costBps: settings.costBps,
-        maxPositionPct: settings.maxPositionPct,
-        startIndex,
-        sentiment: settings.sentimentEnabled
-          ? (symbol, date) => sentimentAt(symbol, date)
-          : undefined,
-        // The LSTM forecast callback is deliberately not supplied: its weights are trained on the
-        // full series, so feeding them into past sessions would leak future information.
-        forecast: undefined,
-      });
-      return { result, error: null };
-    } catch (error) {
-      return { result: null, error: error instanceof Error ? error.message : 'Backtest failed.' };
-    }
-  }, [market, range, sentimentAt, settings.costBps, settings.initialCapital, settings.maxPositionPct, settings.sentimentEnabled, strategyId]);
+    const rows = ALL_STRATEGIES.map<ComparisonRow>((s) => {
+      try {
+        const result = runBacktest({
+          assets,
+          benchmark:
+            market.benchmarkAsset && market.benchmark && market.benchmark.length > 0
+              ? { symbol: market.benchmarkAsset.symbol, bars: market.benchmark }
+              : null,
+          strategy: s,
+          initialCash: settings.initialCapital,
+          costBps: settings.costBps,
+          maxPositionPct: settings.maxPositionPct,
+          startIndex,
+          sentiment: settings.sentimentEnabled ? (symbol, date) => sentimentAt(symbol, date) : undefined,
+          // The LSTM forecast callback is deliberately not supplied: its weights are trained on the
+          // full series, so feeding them into past sessions would leak future information.
+          forecast: undefined,
+        });
+        return { strategy: s, result, error: null };
+      } catch (error) {
+        return { strategy: s, result: null, error: error instanceof Error ? error.message : 'Backtest failed.' };
+      }
+    });
+    return { rows, error: null };
+  }, [market, range, sentimentAt, settings.costBps, settings.initialCapital, settings.maxPositionPct, settings.sentimentEnabled]);
 
-  const result = outcome.result;
+  const selectedRow =
+    comparison.rows.find((r) => r.strategy.id === strategyId) ??
+    comparison.rows.find((r) => r.result !== null) ??
+    comparison.rows[0] ??
+    null;
+  const strategy = selectedRow?.strategy ?? strategyById(strategyId);
+  const result = selectedRow?.result ?? null;
+  const error =
+    comparison.error ?? (selectedRow && !selectedRow.result ? selectedRow.error ?? 'Backtest failed.' : null);
+  const benchmarkSummary =
+    comparison.rows.find((r) => r.result?.benchmarkSummary)?.result?.benchmarkSummary ?? null;
+
+  const exportEquity = () => {
+    if (!result) return;
+    downloadCsv(`investai-backtest-${result.strategyId}-${range.toLowerCase()}.csv`, [
+      ['date', 'strategy_equity', 'benchmark_equity'],
+      ...result.dates.map((d, i) => [
+        new Date(d).toISOString().slice(0, 10),
+        result.equity[i],
+        result.benchmarkEquity ? result.benchmarkEquity[i] : null,
+      ]),
+    ]);
+    toast(`Exported ${result.dates.length} sessions of ${strategy.name} equity.`, 'ok');
+  };
 
   const series = useMemo<LineSeries[]>(() => {
     if (!result) return [];
@@ -102,31 +136,73 @@ export default function Backtest() {
       <div className="stack">
         <Card>
           <div className="spread" style={{ flexWrap: 'wrap', gap: 14 }}>
-            <div className="field">
-              <label className="field-label" htmlFor="bt-strategy">
-                Strategy
-              </label>
-              <select
-                id="bt-strategy"
-                className="select"
-                value={strategyId}
-                onChange={(e) => setStrategyId(e.target.value)}
-              >
-                {ALL_STRATEGIES.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
             <Pills label="Backtest window" options={WINDOWS} value={range} onChange={setRange} />
+            <span className="section-note">
+              {comparison.rows.length} strategies · identical window, costs and data
+            </span>
           </div>
           <p className="field-hint" style={{ marginTop: 10 }}>
             {strategy.description}
           </p>
         </Card>
 
-        {outcome.error ? <ErrorBox>{outcome.error}</ErrorBox> : null}
+        {error ? <ErrorBox>{error}</ErrorBox> : null}
+
+        {comparison.rows.length > 0 && comparison.rows.some((r) => r.result) ? (
+          <Section title="Strategy comparison" note="click a row to load it below">
+            <Card>
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Strategy</th>
+                      <th className="num">Total return</th>
+                      <th className="num">Sharpe</th>
+                      <th className="num">Max drawdown</th>
+                      <th className="num">Trades</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparison.rows.map((row) => {
+                      const summary = row.result?.summary ?? null;
+                      const isSelected = row.strategy.id === strategyId;
+                      return (
+                        <tr key={row.strategy.id} className={isSelected ? 'is-selected' : undefined}>
+                          <td>
+                            <button
+                              type="button"
+                              className="row-link"
+                              aria-pressed={isSelected}
+                              onClick={() => setStrategyId(row.strategy.id)}
+                            >
+                              {row.strategy.name}
+                            </button>
+                          </td>
+                          <td className="num mono">
+                            {summary?.totalReturn == null ? '—' : pct(summary.totalReturn)}
+                          </td>
+                          <td className="num mono">{summary ? ratio(summary.sharpe) : '—'}</td>
+                          <td className="num mono">
+                            {summary?.maxDrawdown ? pct(-summary.maxDrawdown.pct) : '—'}
+                          </td>
+                          <td className="num mono">{row.result?.trades.length ?? '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {benchmarkSummary ? (
+                <p className="field-hint">
+                  {market.benchmarkAsset?.symbol ?? 'Benchmark'} over the same window:{' '}
+                  {benchmarkSummary.totalReturn === null ? '—' : pct(benchmarkSummary.totalReturn)} ·
+                  Sharpe {ratio(benchmarkSummary.sharpe)} · max drawdown{' '}
+                  {benchmarkSummary.maxDrawdown ? pct(-benchmarkSummary.maxDrawdown.pct) : '—'}.
+                </p>
+              ) : null}
+            </Card>
+          </Section>
+        ) : null}
 
         {result ? (
           <>
@@ -135,6 +211,11 @@ export default function Backtest() {
               note={`${formatShortDate(result.dates[0])} → ${formatShortDate(
                 result.dates[result.dates.length - 1],
               )} · ${result.summary.sessions} sessions`}
+              action={
+                <button type="button" className="btn btn--ghost btn--sm" onClick={exportEquity}>
+                  Export CSV
+                </button>
+              }
             >
               <Card>
                 <div className="chart-legend" style={{ marginBottom: 8 }}>

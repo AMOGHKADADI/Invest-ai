@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Signal } from '../lib/types';
 import { formatDateTime, inr, pct, relativeTime } from '../lib/format';
+import { useOverlay } from '../app/overlay';
 import { Avatar, SideBadge } from './ui';
 
 /** Buy / Sell / Hold card with the evidence the signal engine actually used. */
@@ -16,6 +17,7 @@ export function SignalCard({
   footer?: React.ReactNode;
 }) {
   const strength = Math.round(signal.confidence * 100);
+  const { openTrade } = useOverlay();
   return (
     <article className="signal-card">
       <div className="signal-top">
@@ -54,7 +56,14 @@ export function SignalCard({
 
       {showLink ? (
         <div className="inline">
-          <Link className="btn btn--outline-signal btn--sm" to={`/markets/${signal.symbol}`}>
+          <button
+            type="button"
+            className="btn btn--outline-signal btn--sm"
+            onClick={() => openTrade(signal.symbol, signal.side === 'sell' ? 'sell' : 'buy')}
+          >
+            Trade
+          </button>
+          <Link className="btn btn--ghost btn--sm" to={`/markets/${signal.symbol}`}>
             View chart →
           </Link>
         </div>

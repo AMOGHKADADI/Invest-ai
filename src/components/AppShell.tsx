@@ -1,35 +1,13 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Icon, type IconName } from './ui';
+import { Icon } from './ui';
+import { CommandPalette } from './CommandPalette';
 import { useStore } from '../app/store';
 import { formatShortDate } from '../lib/format';
+import { ACTIVITY_NAV, ALL_NAV, PRIMARY_NAV, RESEARCH_NAV, type NavItem } from '../app/nav';
 
-export interface NavItem {
-  to: string;
-  label: string;
-  icon: IconName;
-  end?: boolean;
-}
-
-export const PRIMARY_NAV: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: 'home', end: true },
-  { to: '/markets', label: 'Markets', icon: 'markets' },
-  { to: '/signals', label: 'AI Signals', icon: 'trade' },
-  { to: '/portfolio', label: 'Portfolio', icon: 'portfolio' },
-];
-
-export const RESEARCH_NAV: NavItem[] = [
-  { to: '/forecast', label: 'LSTM Forecast', icon: 'forecast' },
-  { to: '/sentiment', label: 'Sentiment', icon: 'sentiment' },
-  { to: '/backtest', label: 'Backtest', icon: 'backtest' },
-  { to: '/risk', label: 'Risk Management', icon: 'risk' },
-];
-
-export const ACTIVITY_NAV: NavItem[] = [
-  { to: '/trades', label: 'Trade History', icon: 'trades' },
-  { to: '/settings', label: 'Settings', icon: 'settings' },
-];
-
-export const ALL_NAV: NavItem[] = [...PRIMARY_NAV, ...RESEARCH_NAV, ...ACTIVITY_NAV];
+export type { NavItem };
+export { ACTIVITY_NAV, ALL_NAV, PRIMARY_NAV, RESEARCH_NAV };
 
 const BOTTOM_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: 'home', end: true },
@@ -56,6 +34,19 @@ const TITLES: Record<string, { title: string; sub: string }> = {
 export function AppShell() {
   const { market, dataNotice } = useStore();
   const location = useLocation();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const base = `/${location.pathname.split('/')[1] ?? ''}`;
   const meta = TITLES[base] ?? TITLES['/'];
   const lastSession = market.dates.length > 0 ? market.dates[market.dates.length - 1] : null;
@@ -117,6 +108,16 @@ export function AppShell() {
             <div className="topbar-sub">{meta.sub}</div>
           </div>
           <div className="inline" style={{ justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="search-trigger"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Open command palette"
+            >
+              <Icon name="search" />
+              <span>Search</span>
+              <kbd>⌘K</kbd>
+            </button>
             <span className="tag" title={market.disclaimer}>
               <span className="tag-dot" />
               {market.source.kind === 'demo' ? 'Demo data' : 'Imported CSV'}
@@ -134,6 +135,8 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <nav className="bottom-nav" aria-label="Mobile">
         {BOTTOM_NAV.map((item) => (

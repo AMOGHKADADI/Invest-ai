@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../app/store';
+import { useOverlay } from '../app/overlay';
 import { CHART_COLORS, LineChart, type LineSeries } from '../components/charts';
 import {
   Card,
@@ -18,6 +19,21 @@ import { DEFAULT_LSTM_CONFIG } from '../lib/lstm';
 export default function Forecast() {
   const store = useStore();
   const { market, assets, lstmStatus, lstmProgress, lstmError, lstmMeta, trainLstm, forecastFor } = store;
+  const { toast } = useOverlay();
+
+  const statusRef = useRef(lstmStatus);
+  useEffect(() => {
+    if (statusRef.current === lstmStatus) return;
+    statusRef.current = lstmStatus;
+    if (lstmStatus === 'ready' && lstmMeta) {
+      toast(
+        `LSTM trained on ${lstmMeta.symbol} — test RMSE ₹${lstmMeta.metrics.testRmse.toFixed(2)}.`,
+        'ok',
+      );
+    } else if (lstmStatus === 'error' && lstmError) {
+      toast(lstmError, 'error');
+    }
+  }, [lstmError, lstmMeta, lstmStatus, toast]);
 
   const [symbol, setSymbol] = useState<string>(lstmMeta?.symbol ?? assets[0]?.symbol ?? '');
   const [touched, setTouched] = useState(false);
