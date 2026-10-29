@@ -1,304 +1,245 @@
+<div align="center">
+
 # InvestAI
 
-**AI-Driven Autonomous Investment and Risk Management using Reinforcement Learning**
+### An autonomous investment & risk-management research terminal that runs entirely in your browser
 
-A research-grade, self-contained web application that implements the architecture proposed in the
-Phase 1 project report: an LSTM forecasting module, financial-news sentiment analysis, a
-Deep Q-Network trading agent, a layered risk-management system, portfolio accounting, chronological
-backtesting, and an interactive dashboard — all running locally in the browser on deterministic data.
+**LSTM forecasting · FinBERT-ready sentiment · Deep Q-Network trading agent · layered risk controls · chronological backtesting — with zero backend, zero API keys and zero real money.**
 
-> **Research and education only.** InvestAI never connects to a brokerage, never places a real order,
-> and never moves real funds. Nothing in this repository is investment advice, a guarantee of
-> returns, or a claim that any model "beats the market".
+[![CI](https://github.com/AMOGHKADADI/Invest-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/AMOGHKADADI/Invest-ai/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)](#-testing)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![demo data](https://img.shields.io/badge/data-demo%20%26%20CSV%20import-orange)](#data-sources--limitations)
 
----
+**[▶ Live demo](https://amoghkadadi.github.io/Invest-ai/)** · **[Quick start](#-quick-start)** · **[Why you can trust it](#-how-it-keeps-you-honest)** · **[Architecture](#-architecture)**
 
-## 1. Academic context and problem statement
-
-This repository accompanies the Visvesvaraya Technological University (VTU) Bachelor of Engineering
-Phase 1 project *"AI-driven autonomous Investment and Risk Management using Reinforcement Learning"*
-(Department of Computer Science and Engineering, Brindavan College of Engineering, 2025–26).
-
-The report observes that traditional portfolio management depends on human expertise, manual
-analysis and rule-based decisions, which are impaired by emotional bias, delayed responses, limited
-analytical capacity and inadequate risk management — especially during volatile markets. It
-proposes a self-learning trading agent that autonomously performs **Buy / Sell / Hold** operations
-by combining:
-
-- a **Deep Q-Network (DQN)** reinforcement-learning agent as the decision engine,
-- an **LSTM** time-series model for short-term price prediction,
-- **NLP sentiment analysis** of financial text (FinBERT in the report's design),
-- a **risk-management layer** (stop-loss, position sizing, diversification, drawdown control),
-- a **portfolio optimization** and **performance evaluation** framework, and
-- an **interactive dashboard** for oversight.
-
-### What the report proposes vs. what this repository implements
-
-| Report component | Status in this repository |
-| --- | --- |
-| Data pipeline, cleaning, feature engineering | **Implemented** — causal technical-indicator pipeline (`src/lib/indicators.ts`, `src/lib/signals.ts`) over an OHLCV dataset with CSV import |
-| DQN agent (dueling, prioritised replay, Double-DQN) | **Implemented** — trained in-browser with reproducible seeds (`src/lib/dqn.ts`); weights persist in local storage |
-| LSTM price forecasting | **Implemented** — full train/validation/test split, early stopping, held-out metrics (`src/lib/lstm.ts`) |
-| Sentiment analysis | **Partially implemented** — a transparent financial lexicon runs in the browser; a **FinBERT adapter** (`HttpSentiment`) is implemented and activates only when a hosted endpoint is configured. Model weights are *not* shipped or downloaded by this static app |
-| Risk-management constraint layer | **Implemented** — order evaluation with position/sector caps, stop-loss flagging and drawdown halt (`src/lib/risk.ts`) |
-| Portfolio accounting & optimization | **Implemented** — cash, holdings, fees, allocation and risk-adjusted metrics; full MPT optimizer remains future work |
-| Backtesting & evaluation vs. index | **Implemented** — chronological engine with costs, no look-ahead, benchmark comparison (`src/lib/backtest.ts`) |
-| Dashboard & reporting | **Implemented** — responsive React dashboard |
-| Real-time market APIs (Yahoo Finance, Alpha Vantage), news feeds, PostgreSQL, Dash backend | **Not implemented** — a static GitHub Pages deployment cannot host them or hold API keys securely. The app runs on clearly-labelled **demo data** plus **CSV import**, with a documented path to a hosted backend |
-| Live trading, authentication/user roles, notifications | **Future work** (report Phase 2 scope) |
-
-No experimental results, benchmarks or model accuracies are claimed beyond what the application
-itself computes live in your browser. The demo dataset is synthetic and labelled as such in the UI.
+</div>
 
 ---
 
-## 2. Features
+![InvestAI dashboard](docs/screenshots/dashboard.png)
 
-- **Dashboard** — portfolio value, day change, drawdown, latest signals, risk summary, performance
-  chart, all with data timestamps and provenance tags.
-- **Markets** — searchable instrument universe, asset detail with candle/price chart, technical
-  indicators (SMA/EMA, RSI, MACD, Bollinger, ATR, volatility), watchlist.
-- **AI signals** — Buy/Sell/Hold with the contributing factors, score, sentiment, forecast and DQN
-  action where available, plus explicit "not trained" states when a model is absent.
-- **LSTM forecasting** — in-browser training with a fixed seed, training/validation curves, held-out
-  RMSE/MAE, skill vs. a persistence baseline, and a 7-session forecast with a residual band.
-- **Sentiment** — headline classification with engine and provenance shown honestly (lexicon vs.
-  FinBERT), causal aggregation for historical scoring, per-label filtering.
-- **Portfolio** — holdings, allocation donut (asset and sector), P&L, replayed equity curve.
-- **Risk management** — Sharpe/Sortino/drawdown/volatility tiles, live limit checks, and toggles for
-  stop-loss, position sizing, diversification and drawdown halt.
-- **Backtesting** — strategy vs. index over 3M/6M/1Y/All windows with transaction costs, cash and
-  position constraints, and engine guarantees documented in the UI.
-- **Trade history** — every simulated fill with quantity, price, fee and reason.
-- **Settings** — capital, transaction cost, model switches, CSV import/restore, model and data
-  status, portfolio reset.
+## What is this?
 
-Every interactive control either performs a real action or is explicitly marked unavailable
-(e.g. the theme switch, dark-only in this release).
+InvestAI is a **complete, self-contained implementation** of the system proposed in our Visvesvaraya Technological University Phase 1 project *"AI-driven autonomous Investment and Risk Management using Reinforcement Learning"* — rebuilt as a production-quality web application that anyone can run with two commands.
+
+Most "AI trading" demos are either slideware or black boxes you must trust. This one is different:
+
+| | |
+|---|---|
+| 🧠 **Real models, not mocks** | An LSTM trains in your browser with train/validation/test splits and held-out metrics. A dueling Double-DQN with prioritised replay learns Buy/Sell/Hold in a cost-aware environment. Both are gradient-checked by the test suite. |
+| 🚫 **No look-ahead, by construction** | Signals read only the past, backtests fill at the *next* open, sentiment is time-sliced, and models trained on the full series are deliberately excluded from backtests. Every rule is enforced in code and covered by tests. |
+| 🔒 **Nothing to configure** | No server, no database, no API keys, no brokerage. Deterministic demo data plus CSV import. Clone → `npm install` → it works, offline. |
+| 🎯 **Honest by design** | Every figure carries its provenance tag (demo / imported / model). Disabled features *say* they're disabled. No "guaranteed returns" language anywhere. |
+
+**Everything below is real, working software** — not a prototype: paper-trading with fees and risk limits, a searchable market screen with technical indicators, a backtest engine vs. an index benchmark, sentiment classification with a clean lexicon→FinBERT boundary, and an MIT-licensed codebase with 107 unit tests.
 
 ---
 
-## 3. Architecture
+## 📸 Screenshots
+
+<table>
+<tr>
+<td width="50%"><sub><b>AI signals with factor attribution</b></sub><br><img src="docs/screenshots/signals.png" alt="AI signals with the DQN agent panel"></td>
+<td width="50%"><sub><b>Backtest vs. index benchmark</b></sub><br><img src="docs/screenshots/backtest.png" alt="Backtest results"></td>
+</tr>
+<tr>
+<td><sub><b>LSTM training & 7-session forecast</b></sub><br><img src="docs/screenshots/forecast.png" alt="LSTM forecast"></td>
+<td><sub><b>Portfolio & allocation</b></sub><br><img src="docs/screenshots/portfolio.png" alt="Portfolio"></td>
+</tr>
+<tr>
+<td><sub><b>Markets with indicators</b></sub><br><img src="docs/screenshots/markets.png" alt="Markets"></td>
+<td><sub><b>Mobile layout</b></sub><br><img src="docs/screenshots/dashboard-mobile.png" alt="Mobile dashboard" height="400"></td>
+</tr>
+</table>
+
+---
+
+## ⚡ Quick start
+
+```bash
+git clone https://github.com/AMOGHKADADI/Invest-ai.git
+cd Invest-ai
+npm ci
+npm run dev        # → http://localhost:5173
+```
+
+That's it. No environment variables, no sign-up, no API keys.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server with hot reload |
+| `npm run test` | 107 unit tests (financial math, models, no-look-ahead) |
+| `npm run lint` · `npm run typecheck` | ESLint + strict TypeScript |
+| `npm run build` | Typecheck + production bundle (~100 kB gzipped) |
+| `npm run ci` | Everything CI runs |
+
+---
+
+## 🧭 What's inside
+
+**Dashboard** — portfolio value, day change, drawdown, risk summary, latest signal, replayed equity curve, all timestamped and source-tagged.
+
+**Markets** — searchable instrument universe, per-asset detail with price chart and SMA/EMA, RSI, MACD, Bollinger, ATR and volatility readouts; watchlist; one-click paper orders.
+
+**AI signals** — Buy/Sell/Hold from a deterministic ensemble of trend, momentum and volatility features, *plus* sentiment, LSTM forecast direction and the DQN action when those models exist — each factor shown with its evidence and score.
+
+**LSTM forecasting** — full training pipeline in the browser: seeded weights, 60/20/20 split, early stopping, held-out RMSE/MAE, skill vs. a persistence baseline, training curves, and a 7-session forecast with a widening residual band.
+
+**Deep Q-Network agent** — dueling architecture, prioritised experience replay, Double-DQN targets, transaction costs inside the reward, 70/30 train/test with a buy-and-hold comparison reported honestly.
+
+**Sentiment** — a transparent financial lexicon in the browser today, and a FinBERT HTTP adapter that activates only when you point it at a hosted endpoint (it fails closed — it will never silently pretend to be a transformer).
+
+**Risk management** — stop-loss, single-position cap, sector diversification cap and drawdown halt. Every order passes `evaluateOrder`: quantities are trimmed or blocked with a human-readable reason, and you can watch it happen.
+
+**Backtesting** — chronological engine: signals from session *t* fill at *t+1*'s open, costs on every fill, cash and position constraints, benchmark comparison, engine guarantees printed in the UI.
+
+**Trade history & settings** — every simulated fill with fees and rationale; capital, cost and model switches; CSV import; portfolio reset.
+
+---
+
+## 🔬 How it keeps you honest
+
+Quantitative projects die the moment the numbers can't be trusted. These invariants are enforced in code and locked in by tests:
+
+1. **Causal signals** — indicator/signal evaluation at session *t* reads only bars up to *t − 1*.
+2. **No same-bar fills** — the backtester decides on yesterday's information and executes at today's open; running it on a truncated series yields identical trades for that window.
+3. **Time-sliced news** — sentiment aggregation at timestamp *T* ignores every headline published after *T*.
+4. **Clean splits** — LSTM normalisation statistics come from the training segment only; test segments are held out and reported separately.
+5. **No leakage from trained weights** — because the LSTM/DQN train on the full series, they are *excluded* from backtest inputs. The UI explains why.
+6. **Provenance everywhere** — demo, imported and model-derived figures are labelled distinctly, on every screen.
+7. **No silent fallbacks** — the FinBERT adapter errors visibly when unconfigured; a disabled feature reports itself as disabled.
+
+---
+
+## 🏗️ Architecture
 
 ```
 src/
-├── lib/                  # Framework-free domain logic (all unit tests live here)
-│   ├── indicators.ts     # SMA, EMA, RSI, MACD, Bollinger, ATR, volatility
-│   ├── signals.ts        # Feature computation + Buy/Sell/Hold signal engine
-│   ├── sentiment.ts      # Lexicon analyzer, causal aggregation, FinBERT HTTP adapter
-│   ├── lstm.ts           # LSTM forward/backward, Adam training, eval, forecasting
-│   ├── dqn.ts            # Dueling Double-DQN, prioritised replay, trading environment
-│   ├── optim.ts          # Shared Adam optimiser + gradient clipping
-│   ├── risk.ts           # Order evaluation: caps, stop-loss, drawdown halt, assessment
-│   ├── portfolio.ts      # Fees, fills, valuation, allocation, equity replay
-│   ├── metrics.ts        # Return, CAGR, volatility, Sharpe, Sortino, drawdown, Calmar
-│   ├── backtest.ts       # Chronological backtesting engine + benchmark
-│   ├── strategies.ts     # InvestAI ensemble, SMA crossover, buy & hold
-│   ├── csv.ts            # Validated OHLCV import
-│   ├── demoData.ts       # Deterministic synthetic dataset (clearly labelled)
-│   └── format.ts         # Number/date formatting (INR, %, ratios)
-├── app/store.tsx         # Application state, persistence (localStorage), model training
-├── components/           # App shell, charts (pure SVG), reusable UI primitives
-├── pages/                # Dashboard, Markets, Asset detail, Signals, Portfolio, Risk,
-│                         # Forecast, Sentiment, Backtest, Trades, Settings, More
-└── styles/               # Design tokens + responsive CSS
+├── lib/                    # Framework-free domain core — every unit test lives here
+│   ├── indicators.ts       # SMA · EMA · RSI · MACD · Bollinger · ATR · volatility
+│   ├── signals.ts          # Causal feature computation + signal engine
+│   ├── lstm.ts             # LSTM forward/backward, Adam, early stopping, forecasting
+│   ├── dqn.ts              # Dueling Double-DQN, prioritised replay, trading env
+│   ├── sentiment.ts        # Lexicon analyzer + FinBERT HTTP adapter (fails closed)
+│   ├── risk.ts             # evaluateOrder: caps · stop-loss · drawdown halt
+│   ├── portfolio.ts        # Fees, fills, valuation, allocation, equity replay
+│   ├── metrics.ts          # Sharpe · Sortino · drawdown · CAGR · Calmar
+│   ├── backtest.ts         # Chronological engine + benchmark
+│   ├── strategies.ts       # InvestAI ensemble · SMA crossover · buy & hold
+│   └── csv.ts · demoData.ts · format.ts · optim.ts · types.ts
+├── app/store.tsx           # State, localStorage persistence, model training orchestration
+├── components/             # App shell, hand-rolled SVG charts, UI primitives
+├── pages/                  # 12 routed screens
+└── styles/                 # Design tokens + responsive CSS
 ```
 
-**Design system:** deep black `#0B0B0B`, warm white `#F7F7F4`, signal yellow `#FFDC16`, alert red
-`#FF2D3D`; disciplined spacing scale, restrained borders, accessible contrast, mobile → desktop
-responsive layouts. Charts are hand-rolled SVG — no charting dependency.
+**Stack:** TypeScript (strict) · React 18 · Vite 6 · React Router · Vitest · ESLint 9.
+**Runtime dependencies: 3** (react, react-dom, react-router-dom). Charts are hand-drawn SVG; models are implemented in-repo — no chart or ML runtime shipped.
 
-**Data flow:** `demoData` / CSV import → `market` → causal `features` → signal engine (± sentiment,
-LSTM forecast, DQN action) → risk layer (`evaluateOrder`) → paper fills → portfolio/metrics →
-dashboard. Model outputs feed signals only when a model has actually been trained.
-
-### Causality and integrity rules enforced in code
-
-- Indicators and signals at session *t* use only bars up to *t − 1*.
-- Backtest signals are computed from the previous session and filled at the next open.
-- Sentiment aggregation only reads headlines published at or before the queried timestamp.
-- LSTM normalisation statistics come from the training segment only; test segments are held out.
-- The LSTM/DQN are **excluded** from backtest inputs because their weights are trained on the full
-  series — feeding them into past sessions would leak future information (explained in the UI).
-- Demo data is synthetic and tagged "Demo" everywhere it appears.
+```
+demo data / CSV ──► causal features ──► signal engine ◄── sentiment / LSTM / DQN
+                                              │
+                                              ▼
+                                     risk layer (evaluateOrder)
+                                              │
+                                              ▼
+                              paper fills ──► portfolio ──► metrics ──► dashboard
+```
 
 ---
 
-## 4. Technology stack
-
-- **TypeScript** (strict) · **React 18** · **Vite 6** · **React Router 6**
-- **Vitest** for unit tests · **ESLint 9** (flat config) for linting
-- No runtime UI/chart/ML dependencies: models, charts and indicators are implemented in-repo.
-
----
-
-## 5. Getting started
+## 🧪 Testing
 
 ```bash
-npm ci          # reproducible install from package-lock.json
-npm run dev     # dev server at http://localhost:5173
+npm run test     # 107 tests, ~3s
 ```
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run build` | Typecheck + production build to `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run lint` | ESLint over the whole repo |
-| `npm run test` | Unit tests (107 tests) |
-| `npm run ci` | Lint + typecheck + test + build (what CI runs) |
+- **Financial math** — indicator known-values, Sharpe/Sortino/drawdown on hand-computed fixtures, fee and P&L accounting, allocation.
+- **Model integrity** — *finite-difference gradient checks* against the analytical backward passes of both the LSTM and the DQN network; seed reproducibility.
+- **Backtest correctness** — cost application, chronological execution, and a dedicated no-look-ahead regression test.
+- **Risk rules** — trimming, blocking, stop-loss and drawdown-halt behaviour.
+- **Inputs** — CSV parsing edge cases, sentiment classification boundaries.
+
+CI runs lint → typecheck → test → build on every push and pull request.
 
 ---
 
-## 6. Environment variables
+## 🎓 Academic context
 
-No secrets are required or accepted by the application. Optional build-time variables:
+This repository accompanies the VTU B.E. Phase 1 project *"AI-driven autonomous Investment and Risk Management using Reinforcement Learning"* (Dept. of CSE, Brindavan College of Engineering, 2025–26), which proposes a self-learning agent combining a DQN decision engine with LSTM forecasting, NLP sentiment, a risk-constraint layer, portfolio optimization and a monitoring dashboard.
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `VITE_BASE_PATH` | No (default `/`) | Asset base path; the Pages workflow sets `/Invest-ai/` |
-| `VITE_SENTIMENT_API_URL` | No | Hosted FinBERT endpoint. When set, sentiment classification is routed to it; it **fails closed** with a visible error rather than silently falling back to the lexicon |
+The report's proposed Python/TensorFlow/PostgreSQL stack is intentionally **not** replicated here: a static site cannot hold API keys or serve a training backend. Instead, this codebase implements the same architecture faithfully and *verifiably* in the browser, and separates what exists today from what remains Phase 2 scope:
 
-`.env` files are git-ignored (`.env.example` would be the place to document new variables). Never
-commit API keys; a browser bundle is public by definition.
+| Report component | Status here |
+|---|---|
+| Data pipeline & feature engineering | ✅ implemented (causal, tested) |
+| DQN agent (dueling, PER, Double-DQN) | ✅ implemented — trains in-browser |
+| LSTM forecasting module | ✅ implemented — full eval protocol |
+| Sentiment analysis | ✅ lexicon now · FinBERT adapter behind `VITE_SENTIMENT_API_URL` |
+| Risk constraint layer | ✅ implemented — trims or blocks with reasons |
+| Portfolio accounting & metrics | ✅ implemented |
+| Backtesting vs. benchmark | ✅ implemented — no look-ahead by design |
+| Dashboard & reporting | ✅ implemented (this app) |
+| Live market/news APIs, PostgreSQL, Dash backend | ⏳ Phase 2 — needs a real server |
+| Mean-variance portfolio optimizer | ⏳ Phase 2 |
+| Live trading, accounts, notifications | ⏳ Phase 2 — intentionally out of scope |
+| Android APK | ❌ not built; none is claimed |
 
----
-
-## 7. Testing
-
-```bash
-npm run test
-```
-
-The suite focuses on financial correctness and model integrity:
-
-- **Indicators** — known-value checks for SMA/EMA/RSI/MACD/Bollinger/ATR.
-- **Metrics** — Sharpe/Sortino/drawdown/CAGR on hand-computed fixtures.
-- **Portfolio** — fills, fees, average cost, realised/unrealised P&L, allocation.
-- **Risk** — cap trimming, blocking, stop-loss and drawdown-halt behaviour.
-- **Signals** — side selection and factor reporting across crafted market shapes.
-- **Backtest** — chronological execution, cost application, and a no-look-ahead test
-  (running on a truncated series yields identical trades for that window).
-- **LSTM & DQN** — finite-difference gradient checks against the analytical backward passes,
-  reproducibility from a fixed seed, forecast-shape and action-space validation.
-- **Sentiment / CSV** — classification boundaries, causal aggregation, parser validation.
+No experimental results, accuracies or benchmarks are claimed beyond what the application computes live in front of you.
 
 ---
 
-## 8. CI/CD and deployment
+## 📊 CI/CD & deployment
 
-| Workflow | File | Trigger | What it does |
-| --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | push + PR to `main` | `npm ci` → lint → typecheck → test → build |
-| **Deploy** | `.github/workflows/deploy.yml` | push to `main` (manual dispatch supported) | tests → build with `VITE_BASE_PATH=/Invest-ai/` → publish `dist/` to **GitHub Pages** |
+| Workflow | Trigger | Does |
+|---|---|---|
+| [CI](.github/workflows/ci.yml) | push + PR to `main` | `npm ci` → lint → typecheck → 107 tests → production build |
+| [Deploy](.github/workflows/deploy.yml) | push to `main` | test → build → publish `dist/` to **GitHub Pages** |
 
-Both workflows use least-privilege permissions (`contents: read`; the deploy job additionally gets
-`pages: write` + `id-token: write` for the OIDC Pages deployment).
+Least-privilege permissions throughout (`contents: read`; the deploy job adds `pages: write` + `id-token: write` for OIDC). The Pages build sets `VITE_BASE_PATH=/Invest-ai/` so assets resolve under the project path; local dev stays at `/`.
 
-**Deploying:**
-1. Repository → *Settings → Pages → Source: **GitHub Actions***.
-2. Push to `main` (or run the Deploy workflow manually).
-3. The site is served at `https://amoghkadadi.github.io/Invest-ai/`.
-
-If Pages is disabled or the account plan blocks it, the CI workflow still validates every push and
-the `dist/` output can be hosted anywhere static.
+**Publishing:** Settings → Pages → Source: **GitHub Actions**, then re-run the Deploy workflow.
 
 ---
 
-## 9. Model training and inference
+## 🔐 Security
 
-All training happens **client-side**, deterministically:
-
-- **LSTM** (`Forecast` page): 30-session windows, hidden size 16, Adam (lr 0.006), 60/20/20
-  train/validation/test split, early stopping with patience 8, seed 7. Reports test RMSE/MAE and
-  skill vs. a persistence baseline. The forecast band is `1.96 ×` residual std (× √horizon) — a
-  documented heuristic, not a calibrated interval.
-- **DQN** (trained from the Signals flow): dueling architecture, prioritised experience replay,
-  Double-DQN targets, epsilon-greedy exploration over Buy/Sell/Hold, transaction costs in the
-  reward, 70/30 train/test split with buy & hold comparison for the test segment.
-- Trained weights persist in `localStorage` only. "Clear trained models" removes them.
-
-Honest limits: these are small models trained on a short demo series in a browser tab. They
-demonstrate the report's architecture end-to-end; they are not evidence of predictive power on real
-markets.
+- No secrets, tokens or credentials exist anywhere in the codebase or bundle.
+- `.env*` is git-ignored; the app makes no network calls unless you configure a sentiment endpoint yourself.
+- All state (settings, paper trades, trained weights) stays in your browser's `localStorage` — nothing is transmitted.
+- The app never connects to a brokerage and cannot move money.
 
 ---
 
-## 10. Backtesting assumptions
+## 📈 Data sources & limitations
 
-- Signals from session *t* execute at session *t+1*'s **open** — no same-bar or look-ahead fills.
-- Transaction cost is a fixed **basis points** fee on traded notional (default 10 bps).
-- One position per symbol; budget per entry is `min(position cap × equity, cash)`.
-- Equity is marked to market at each session's close; exposure and turnover are reported.
-- Ratios use 252 sessions/year and a 0% risk-free rate; Sharpe/volatility use sample standard
-  deviation, Sortino uses downside deviation. Short or zero-variance histories return "—".
-- The benchmark is buy-and-hold of the index series with the same entry cost.
-- Not modelled: slippage beyond the flat fee, liquidity, dividends, taxes, survivorship bias.
+- **Demo data** is deterministic, synthetic and labelled *Demo* on every screen — it is not market data.
+- **CSV import** (`date,open,high,low,close,volume`[,symbol]) swaps the dataset until you restore the demo.
+- Live prices/news (Yahoo Finance, Alpha Vantage, NewsAPI per the report) require a server with credentials — Phase 2.
+- Browser-side training caps dataset size and model capacity; these models demonstrate the architecture, not predictive power.
+- Backtests ignore slippage beyond the flat fee, liquidity, dividends and survivorship effects.
 
 ---
 
-## 11. Data sources and limitations
+## 🗺️ Roadmap
 
-- The default dataset is **deterministic synthetic data** generated in `src/lib/demoData.ts` and
-  labelled *Demo* in the UI. It is not real market data.
-- **CSV import** (`date,open,high,low,close,volume`[`,symbol`]) replaces the dataset until the demo
-  is restored. Imported files are used exactly as supplied.
-- Live market/news APIs from the report (Yahoo Finance, Alpha Vantage, NewsAPI) are **not**
-  integrated: a static GitHub Pages app cannot hold those credentials securely. The report's
-  proposed Python/TensorFlow backend is the natural home for them (see §1).
-- Headlines are a synthetic corpus. FinBERT requires a hosted endpoint via `VITE_SENTIMENT_API_URL`;
-  the lexicon analyzer is never presented as FinBERT.
+- [ ] Hosted Python backend (TensorFlow/Keras DQN + LSTM, FinBERT via Hugging Face)
+- [ ] Live market-data and news ingestion behind server-side credentials
+- [ ] Mean-variance portfolio optimization and rebalancing
+- [ ] Walk-forward cross-validation for the backtester
+- [ ] Android client (Kotlin/Compose) — no APK exists today
+
+Contributions welcome — open an issue first so we can align on design.
 
 ---
 
-## 12. Security considerations
+## 📄 License
 
-- No API keys, tokens or credentials exist in the codebase or the bundle.
-- `.env*` is git-ignored; GitHub Actions uses only built-in secrets and needs none of ours.
-- No network calls are made unless a sentiment endpoint is explicitly configured.
-- All user state stays in browser `localStorage`; nothing is transmitted.
-- Workflows run with read-only repository permissions except the Pages deploy job.
+[MIT](LICENSE) — use it, learn from it, build on it.
 
----
-
-## 13. Limitations and future work
-
-**Current limitations**
-
-- Static, client-side only: no backend, database, authentication or multi-user support.
-- Demo/imported data only — no live prices, news or brokerage integration.
-- Single-instrument models trained on demand; no pre-trained weights are distributed.
-- The portfolio module computes allocation and risk metrics but does not yet run a full
-  mean-variance optimiser (report objective 6).
-- Browser training caps the dataset size and model capacity.
-
-**Future work (aligned with the report's Phase 2)**
-
-- Hosted Python backend (TensorFlow/Keras DQN + LSTM, FinBERT via Hugging Face) with the proposed
-  API and database layers.
-- Real market-data and news ingestion behind server-side credentials.
-- Mean-variance portfolio optimization and rebalancing.
-- Backtest walk-forward cross-validation and parameter-hygiene tooling.
-- APK/Android client — **not included**; no APK has been built or verified for this repository.
-
----
-
-## 14. Repository layout
-
-```
-.
-├── .github/workflows/     # ci.yml, deploy.yml
-├── public/                # favicon
-├── src/
-│   ├── app/               # store (state + persistence + training)
-│   ├── components/        # shell, charts, UI primitives, signal card
-│   ├── lib/               # domain logic + all tests
-│   ├── pages/             # route screens
-│   └── styles/            # tokens + app CSS
-├── eslint.config.js
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
+<div align="subtle">
+<sub>Built for research and education. Nothing here is investment advice, and no part of this project can place a real trade.</sub>
+</div>
